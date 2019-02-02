@@ -1,4 +1,5 @@
 # FileTransferTCP-UDP
+## Note that the implementation of UDP is not completely correct
 To compile:
 	- Open terminal in the working directory
 	- Run the command "make"
