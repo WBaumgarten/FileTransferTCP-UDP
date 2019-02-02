@@ -1,0 +1,402 @@
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFileChooser;
+import javax.swing.text.DefaultCaret;
+
+public class SenderGUI extends javax.swing.JFrame {
+
+    private String fileName = "";
+    private Boolean TCP = true;
+    private static long current;
+    private static long fileLength;
+
+    private String receiverIP;
+    private int senderPort;
+
+    private int chunkSize = 5;
+
+    class sendFile extends Thread {
+
+        @Override
+        public void run() {
+            if (TCP) {
+                try {
+                    //Initialize Sockets
+                    ServerSocket ssock = new ServerSocket(senderPort);
+                    displayTxta.append("Waiting for file recipient.\n\n");
+                    Socket socket = ssock.accept();
+
+                    //The InetAddress specification
+                    InetAddress IA = InetAddress.getByName(receiverIP);
+
+                    //Specify the file
+                    File file = new File(fileName);
+                    FileInputStream fis = new FileInputStream(file);
+                    BufferedInputStream bis = new BufferedInputStream(fis);
+
+                    //Get socket's output stream
+                    OutputStream os = socket.getOutputStream();
+
+                    int length = (int) file.length();
+                    String lengthS = Integer.toString(length);
+                    byte[] lengthB = lengthS.getBytes();
+                    os.write(lengthB);
+                    os.flush();
+
+                    //Read File Contents into contents array
+                    byte[] contents;
+                    fileLength = file.length();
+                    current = 0;
+                    progressBar.setMaximum((int) fileLength);
+
+                    long start = System.nanoTime();
+                    Tester test1 = new Tester();
+                    test1.StartTimer();
+                    String lastPrint = "";
+                    while (current != fileLength) {
+                        int size = 10000;
+                        if (fileLength - current >= size) {
+                            current += size;
+                        } else {
+                            size = (int) (fileLength - current);
+                            current = fileLength;
+                        }
+                        contents = new byte[size];
+                        bis.read(contents, 0, size);
+                        os.write(contents);
+                        progressBar.setValue((int) current);
+                        System.out.println("Sending file ... " + (current * 100) / fileLength + "% complete!");
+                        String newPrint = "Sending file ... " + (current * 100) / fileLength + "% complete!\n";
+                        if (!newPrint.equals(lastPrint)) {
+                            displayTxta.append(newPrint);
+                            lastPrint = newPrint;
+                        }
+                        progressBar.setValue((int) current);
+                    }
+
+                    os.flush();
+                    //File transfer done. Close the socket connection!
+                    socket.close();
+                    ssock.close();
+
+                    System.out.println("File sent succesfully!");
+                    displayTxta.append("The file has been sent successfully.\n\n");
+                    System.out.println(test1.StopTimer(Tester.SECONDS));
+
+                } catch (IOException ex) {
+                    Logger.getLogger(SenderGUI.class.getName()).log(Level.SEVERE, null, ex);
+                    System.err.println(ex);
+                }
+				this.interrupt();
+            } else {
+                //UDP
+                chunkSize = (int) chunkSpinner.getValue();
+                SenderRBUDP sender = new SenderRBUDP(fileName, receiverIP, senderPort, chunkSize);
+                Tester test1 = new Tester();
+                test1.StartTimer();
+                sender.createConnection();
+                System.out.println(test1.StopTimer(Tester.SECONDS));
+                displayTxta.append("The file has been sent successfully.\n\n");
+    			this.interrupt();
+            }
+        }
+    }
+
+    /**
+     * Creates new form SenderGUI
+     */
+    public SenderGUI() {
+        initComponents();
+        chunkLbl.setEnabled(false);
+        chunkSpinner.setEnabled(false);
+        DefaultCaret caret = (DefaultCaret) displayTxta.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.OUT_BOTTOM);
+    }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        fileMethodBtnGrp = new javax.swing.ButtonGroup();
+        jLabel1 = new javax.swing.JLabel();
+        chooseFileBtn = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+        tcpRdio = new javax.swing.JRadioButton();
+        udpRdio = new javax.swing.JRadioButton();
+        sendBtn = new javax.swing.JButton();
+        fileTxtf = new javax.swing.JTextField();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        displayTxta = new javax.swing.JTextArea();
+        jLabel3 = new javax.swing.JLabel();
+        progressBar = new javax.swing.JProgressBar();
+        jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
+        portTxtf = new javax.swing.JTextField();
+        ipTxtf = new javax.swing.JTextField();
+        chunkLbl = new javax.swing.JLabel();
+        chunkSpinner = new javax.swing.JSpinner();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setResizable(false);
+
+        jLabel1.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        jLabel1.setText("EZ FILE TRANSFER - SENDER");
+
+        chooseFileBtn.setText("Choose File");
+        chooseFileBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                chooseFileBtnActionPerformed(evt);
+            }
+        });
+
+        jLabel2.setText("File Transfer Method:");
+
+        fileMethodBtnGrp.add(tcpRdio);
+        tcpRdio.setSelected(true);
+        tcpRdio.setText("TCP");
+        tcpRdio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tcpRdioActionPerformed(evt);
+            }
+        });
+
+        fileMethodBtnGrp.add(udpRdio);
+        udpRdio.setText("UDP");
+        udpRdio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                udpRdioActionPerformed(evt);
+            }
+        });
+
+        sendBtn.setText("Send File");
+        sendBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sendBtnActionPerformed(evt);
+            }
+        });
+
+        fileTxtf.setText("");
+
+        displayTxta.setColumns(20);
+        displayTxta.setRows(5);
+        jScrollPane1.setViewportView(displayTxta);
+
+        jLabel3.setText("Progress:");
+
+        jLabel4.setText("Destination IP:");
+
+        jLabel5.setText("Your Port:");
+
+        portTxtf.setText("5000");
+
+        ipTxtf.setText("localhost");
+
+        chunkLbl.setText("Chunksize:");
+
+        chunkSpinner.setModel(new javax.swing.SpinnerNumberModel(5, 5, 50, 1));
+        chunkSpinner.setToolTipText("Note: When using larger chunksizes, file transfer estimation becomes less accurate.");
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addGap(18, 18, 18)
+                        .addComponent(portTxtf))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel4)
+                        .addGap(36, 36, 36)
+                        .addComponent(ipTxtf))
+                    .addComponent(jLabel1)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(chooseFileBtn)
+                        .addGap(18, 18, 18)
+                        .addComponent(fileTxtf, javax.swing.GroupLayout.PREFERRED_SIZE, 316, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(tcpRdio)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(udpRdio)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(chunkLbl)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(chunkSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(sendBtn))
+                    .addComponent(progressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1)
+                    .addComponent(jLabel3))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(13, 13, 13)
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(chooseFileBtn)
+                    .addComponent(fileTxtf))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(ipTxtf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(portTxtf, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(tcpRdio)
+                            .addComponent(udpRdio)
+                            .addComponent(chunkLbl)
+                            .addComponent(chunkSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(sendBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 188, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+
+        pack();
+        setLocationRelativeTo(null);
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void chooseFileBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chooseFileBtnActionPerformed
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.showOpenDialog(null);
+        File f = fileChooser.getSelectedFile();
+        try {
+            fileName = f.getAbsolutePath();
+            fileTxtf.setText(fileName);
+        } catch (Exception e) {
+
+        }
+    }//GEN-LAST:event_chooseFileBtnActionPerformed
+
+    private void sendBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendBtnActionPerformed
+        fileName = fileTxtf.getText();
+        if (!fileName.equalsIgnoreCase("")) {
+            receiverIP = ipTxtf.getText();
+            senderPort = 0;
+            if (receiverIP.equalsIgnoreCase("")) {
+                System.out.println("Please enter a destination IP.");
+                return;
+            }
+
+            try {
+                senderPort = Integer.parseInt(portTxtf.getText());
+            } catch (Exception e) {
+                System.out.println("Please enter a valid Port.");
+                return;
+            }
+
+            new sendFile().start();
+        }
+        System.out.println("Done with send");
+    }//GEN-LAST:event_sendBtnActionPerformed
+
+    private void tcpRdioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tcpRdioActionPerformed
+        TCP = tcpRdio.isSelected();
+        if (!TCP) {
+            chunkLbl.setEnabled(true);
+            chunkSpinner.setEnabled(true);
+        } else {
+            chunkLbl.setEnabled(false);
+            chunkSpinner.setEnabled(false);
+        }
+    }//GEN-LAST:event_tcpRdioActionPerformed
+
+    private void udpRdioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_udpRdioActionPerformed
+        TCP = tcpRdio.isSelected();
+        if (!TCP) {
+            chunkLbl.setEnabled(true);
+            chunkSpinner.setEnabled(true);
+        } else {
+            chunkLbl.setEnabled(false);
+            chunkSpinner.setEnabled(false);
+        }
+    }//GEN-LAST:event_udpRdioActionPerformed
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(SenderGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(SenderGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(SenderGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(SenderGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new SenderGUI().setVisible(true);
+            }
+        });
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton chooseFileBtn;
+    private javax.swing.JLabel chunkLbl;
+    private javax.swing.JSpinner chunkSpinner;
+    public static javax.swing.JTextArea displayTxta;
+    private javax.swing.ButtonGroup fileMethodBtnGrp;
+    private javax.swing.JTextField fileTxtf;
+    private javax.swing.JTextField ipTxtf;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextField portTxtf;
+    public static javax.swing.JProgressBar progressBar;
+    private javax.swing.JButton sendBtn;
+    private javax.swing.JRadioButton tcpRdio;
+    private javax.swing.JRadioButton udpRdio;
+    // End of variables declaration//GEN-END:variables
+}
