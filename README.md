@@ -1,2 +1,18 @@
 # FileTransferTCP-UDP
-Java program that allows a server to be hosted, clients to connect, and then send files using the network connection via TCP or UDP
+To compile:
+	- Open terminal in the working directory
+	- Run the command "make"
+
+To clean:
+	- Open terminal in the working directory
+	- Run the command "make clean"
+
+To start sender:
+	- Compile the program
+	- Open terminal in the working directory
+	- Run the command "java SenderGui"
+
+To start receiver:
+	- Compile the program
+	- Open terminal in the working directory
+	- Run the command "java ReceiverGUI"
